@@ -94,7 +94,7 @@
 
 В `sql/analytics.sql` собраны задачи:
 
-- пересчёт accuracy из correct / attempts;
+- пересчёт accuracy из correct / attempts;\n- базовые data-quality checks для корректности метрик;\n- пороги decision layer применяются к неокруглённым значениям;
 - доля попыток предмета через window function;
 - weak-topic analysis с minimum-volume guardrail;
 - `RANK()` слабых тем внутри предмета;
@@ -102,7 +102,7 @@
 - `CASE WHEN` для recommendation buckets;
 - `LAG()` для изменения активности день к дню;
 - cumulative XP через оконную `SUM()`;
-- decision layer с объяснением причины рекомендации.
+- decision layer с объяснением причины рекомендации.\n\nSQL специально не использует округлённую accuracy в условиях фильтрации: округление оставлено только для вывода.
 
 SQL здесь используется не только для получения таблицы, а для **подготовки данных к продуктовому решению**.
 
