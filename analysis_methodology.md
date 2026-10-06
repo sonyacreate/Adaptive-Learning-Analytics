@@ -1,53 +1,53 @@
-# Analytical methodology
+# Методология анализа
 
-## Unit of analysis
+## Единица анализа
 
-The main performance tables are already aggregated from the original event-level learning system:
+Основные аналитические таблицы агрегированы из событий исходной образовательной платформы:
 
-- subject level: attempts, correct answers, accuracy;
-- topic level: attempts, correct answers, accuracy;
-- daily level: completed tasks and XP;
-- topic catalog: curriculum structure and available tasks.
+- уровень предмета: количество попыток, правильные ответы, accuracy;
+- уровень темы: количество попыток, правильные ответы, accuracy;
+- дневной уровень: выполненные задания и XP;
+- каталог тем: структура учебной программы и доступные задания.
 
-## Why aggregate data is used
+## Почему используется агрегированный слой
 
-The original diploma system contains application-level events and identifiers. The portfolio repository keeps the analytical layer rather than exposing unnecessary application data.
+Исходный дипломный проект содержит application-level события и технические идентификаторы. В портфолио оставлен аналитический слой, достаточный для воспроизводимого анализа, без лишних технических данных приложения.
 
-## Guardrails
+## Аналитические ограничения
 
-A topic is not treated as a product problem merely because its accuracy is low.
+Низкая accuracy сама по себе не означает наличие проблемы.
 
-For prioritization:
-- use a minimum observation threshold;
-- compare accuracy with volume;
-- explicitly flag tiny samples;
-- avoid causal language without an experiment.
+Перед продуктовым решением нужно:
+1. проверить объём наблюдений;
+2. сравнить accuracy с количеством попыток;
+3. отдельно отметить маленькие выборки;
+4. не делать causal claims без эксперимента.
 
-## Recommendation hypothesis
+## Гипотеза рекомендации
 
-A useful adaptive signal can combine:
+Приоритет рекомендации может учитывать:
 
-**topic weakness + recency + learning progress**
+**слабая успеваемость + давность попытки + прогресс пользователя.**
 
-Example rule:
+Пример правила:
+- высокий приоритет, если тема достаточно наблюдаема и accuracy низкая;
+- обычный приоритет при нормальной успеваемости;
+- недостаточно данных при слишком малом числе попыток.
 
-- high review priority when the topic has enough observations and accuracy is low;
-- normal priority when performance is sufficient;
-- do not escalate a topic based on one or two attempts.
+## Эксперимент
 
-## Experiment design
+Для проверки эффекта:
 
-To validate the recommender:
+**Контроль:** существующий алгоритм рекомендаций.
 
-**Control:** existing/baseline recommendation  
-**Treatment:** adaptive recommendation
+**Тест:** адаптивный алгоритм на основе recency, accuracy по теме и прогресса.
 
-Primary metrics:
-- task completion;
-- learning accuracy;
-- repeat practice of weak topics;
+Основные метрики:
+- выполнение заданий;
+- accuracy;
+- повторная практика слабых тем;
 - D7 retention.
 
-The key product question is not simply “does the model predict correctly?”, but:
+Главный продуктовый вопрос:
 
-> **Does personalization improve learning outcomes without increasing friction or repeatedly serving tasks the student already masters?**
+**Улучшает ли персонализация реальные результаты обучения, не увеличивая фрустрацию пользователя?**
