@@ -1,55 +1,140 @@
-# Kvant — Product Analytics: Adaptive Learning
+# Kvant — Product Analytics: адаптивное обучение
 
-Product Analytics / EdTech case based on a real adaptive-learning platform originally built as a diploma project.
+**Портфолио-кейс по продуктовой аналитике в EdTech.**
 
-## Business problem
-How can an EdTech product use learning behavior to personalize tasks, detect weak topics, and improve learning outcomes?
+Анализ поведения пользователей образовательной платформы с адаптивным обучением: вовлечённость, успеваемость, проблемные темы и сигналы для персонализации заданий.
 
-The analysis focuses on **engagement, learning performance, weak-topic detection, and signals for an adaptive recommender**.
+> **Цель проекта:** показать, как аналитик превращает данные об обучении в продуктовые выводы и проверяемые гипотезы.
 
-## Key findings
-- 160 task attempts across 7 active dates.
-- Mathematics: 117 attempts, **59.0% accuracy**.
-- History: 36 attempts, **25.0% accuracy**.
-- English: 7 attempts, 57.1% accuracy — too little data for a strong conclusion.
-- Ancient World: 23 attempts, **17.4% accuracy** — a meaningful candidate for review.
-- Difficulty 1: 125 attempts, 50.4% accuracy.
-- Difficulty 2: 29 attempts, 58.6% accuracy.
-- Difficulty 3: only 6 attempts, so 33.3% accuracy is not reliable evidence.
+## 1. Бизнес-задача
 
-## Product conclusions
-1. Topic accuracy should be combined with observation volume.
-2. Low-performing, sufficiently observed topics are candidates for additional practice.
-3. Difficulty alone is not enough to personalize learning.
-4. The current data has no control group, so it cannot prove that recommendations caused better outcomes.
-5. The next step is a controlled experiment: **baseline recommendations vs adaptive recommendations**.
+Образовательная платформа хочет персонализировать обучение вместо выдачи одинаковой последовательности заданий всем ученикам.
 
-## SQL demonstrated
-CTEs, CASE WHEN, GROUP BY, conditional aggregation, window functions, RANK(), topic/subject aggregation, and minimum-volume guardrails.
+Нужно понять:
+- какие предметы и темы вызывают наибольшие сложности;
+- какие поведенческие сигналы можно использовать для адаптивной рекомендации;
+- как проверить, действительно ли персонализация улучшает результат.
 
-See [sql/analytics.sql](sql/analytics.sql).
+### Главный аналитический вопрос
 
-## Stack
-Python · pandas · SQL · DuckDB/SQLite · Jupyter · matplotlib
+**Какие сигналы стоит использовать, чтобы рекомендовать ученику задания, которые помогают закрывать пробелы в знаниях?**
 
-## Repository
-```
+## 2. Ключевые результаты
+
+| Метрика | Результат |
+|---|---:|
+| Попытки выполнения заданий | **160** |
+| Активные даты | **7** |
+| Попытки по математике | **117** |
+| Точность по математике | **59,0%** |
+| Попытки по истории | **36** |
+| Точность по истории | **25,0%** |
+| Попытки по английскому | **7** |
+| Точность по английскому | **57,1%** |
+| Древний мир | **23 попытки / 17,4% точности** |
+| Уровень сложности 1 | **125 попыток / 50,4%** |
+| Уровень сложности 2 | **29 попыток / 58,6%** |
+| Уровень сложности 3 | **6 попыток / 33,3%** |
+
+## 3. Что это значит для продукта
+
+### 🔴 Древний мир — кандидат на усиленную практику
+
+По теме было **23 попытки**, а точность составила всего **17,4%**. Это достаточно наблюдений, чтобы рассматривать тему как кандидата для дополнительного повторения.
+
+**Продуктовая гипотеза:** если после серии ошибок чаще рекомендовать задания по слабой теме, пользователь будет лучше закрывать пробелы в знаниях.
+
+### 🟡 История требует отдельного внимания
+
+По истории 36 попыток и точность 25%. Но менять алгоритм рекомендаций только на уровне предмета неправильно. Следующий шаг — найти конкретные проблемные темы.
+
+### 🟢 Нельзя считать самую сложную категорию самой проблемной
+
+Для уровня сложности 3 получено 33,3% точности, но всего 6 попыток. Делать серьёзные продуктовые выводы нельзя.
+
+> **Низкая метрика без достаточного объёма наблюдений ≠ доказанная проблема.**
+
+## 4. Сигнал для адаптивной рекомендации
+
+Для каждой темы можно учитывать **успеваемость + количество наблюдений + давность последней попытки + прогресс пользователя**.
+
+| Условие | Рекомендация |
+|---|---|
+| ≥10 попыток и accuracy <40% | высокий приоритет повторения |
+| ≥5 попыток и accuracy <60% | повторить тему |
+| мало наблюдений | недостаточно данных |
+| высокая accuracy | не приоритизировать |
+
+Пороговые значения — **аналитическая гипотеза**, а не доказанно оптимальный алгоритм.
+
+## 5. SQL
+
+В проекте есть отдельный SQL-слой: CTE, CASE WHEN, GROUP BY, оконные функции, RANK(), условная агрегация, расчёт accuracy, ранжирование слабых тем и минимальный порог количества наблюдений.
+
+Файл: **sql/analytics.sql**
+
+## 6. Python-анализ
+
+Используются Python, pandas, matplotlib, SQL и DuckDB / SQLite.
+
+Файл: **kvant_product_analytics.py**
+
+Скрипт воспроизводит основные расчёты и строит сравнение точности по предметам.
+
+## 7. Структура проекта
+
 README.md
+analysis_methodology.md
 requirements.txt
 kvant_product_analytics.py
 sql/analytics.sql
-data/
-  daily_activity.csv
-  subject_performance.csv
-  topic_performance.csv
-  topic_catalog.csv
-```
+data/daily_activity.csv
+data/subject_performance.csv
+data/topic_performance.csv
+data/topic_catalog.csv
 
-## Data limitations
-The current analytical slice contains one active student, 160 attempts, 7 active dates, and no randomized control group. Response-time values are zero in the source data. Therefore this portfolio case intentionally avoids causal claims and treats recommender effectiveness as a hypothesis for future testing.
+## 8. Ограничения анализа
 
-## Recommended experiment
-**Control:** baseline recommendation  
-**Treatment:** adaptive recommendation using recency + topic accuracy + progress
+Это небольшой аналитический срез реального учебного проекта: 160 попыток, 7 активных дат, один пользователь в аналитическом срезе, отсутствие контрольной группы и полноценной долгосрочной когорты.
 
-Primary metrics: task completion, learning accuracy, repeat practice of weak topics, D7 retention.
+Поэтому проект **не утверждает, что адаптивные рекомендации уже доказанно улучшают обучение**. Текущие данные позволяют сформировать продуктовые гипотезы, но не доказать причинный эффект.
+
+## 9. Как проверить гипотезу
+
+Следующий шаг — контролируемый эксперимент.
+
+**Контроль:** существующий алгоритм рекомендаций.
+
+**Тест:** адаптивный алгоритм на основе recency + accuracy по теме + прогресса пользователя.
+
+Основные метрики: доля выполненных заданий, точность, повторные попытки слабых тем и D7 retention.
+
+Guardrail-метрики: пропуски заданий, доля повторов уже освоенных тем и пользовательская активность.
+
+Критерий успеха: адаптивная рекомендация должна давать измеримое улучшение обучения без ухудшения пользовательского опыта.
+
+## 10. Что демонстрирует проект
+
+**Продуктовая аналитика:** бизнес-вопрос, продуктовые метрики, поиск проблемных сегментов, гипотезы и продуктовые решения.
+
+**SQL:** CTE, оконные функции, агрегации, ранжирование, условная логика.
+
+**Python:** pandas, обработка данных, расчёт метрик, визуализация.
+
+**Аналитическое мышление:** контроль объёма выборки, отсутствие необоснованных causal claims, разделение факта, гипотезы и эксперимента.
+
+## 11. Связь с реальным продуктом
+
+Проект основан на образовательной платформе **Kvant**, разработанной в рамках дипломной работы.
+
+В исходной системе присутствовали адаптивный подбор заданий, диагностическое тестирование, уровни сложности, прогресс по темам, XP и серии активности, предметы и темы, роли ученика и родителя, Django REST API, React-интерфейс и автоматическая генерация заданий.
+
+В портфолио анализ сфокусирован именно на **данных и продуктовых решениях**, а не на разработке самого приложения.
+
+## Автор
+
+**Соня**
+
+Направление: **Product Analytics / Data Science / ML**
+
+Полный аналитический цикл: **бизнес-вопрос → данные → метрики → SQL/Python → выводы → продуктовая гипотеза → эксперимент**.
