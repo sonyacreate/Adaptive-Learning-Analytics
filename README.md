@@ -43,7 +43,6 @@ data/
   subject_performance.csv
   topic_performance.csv
   topic_catalog.csv
-  task_attempts.csv
 ```
 
 ## Data limitations
