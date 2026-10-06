@@ -9,7 +9,6 @@ DATA = ROOT / "data"
 
 
 def load_data():
-    """Load the analytical layer used in the portfolio case."""
     topics = pd.read_csv(DATA / "topic_performance.csv")
     subjects = pd.read_csv(DATA / "subject_performance.csv")
     difficulty = pd.read_csv(DATA / "difficulty_performance.csv")
@@ -18,7 +17,7 @@ def load_data():
 
 
 def add_product_priority(topics):
-    """Apply the current analytical guardrail for recommendation candidates."""
+    """Translate observed performance into review candidates."""
     result = topics.copy()
 
     def classify(row):
@@ -34,15 +33,36 @@ def add_product_priority(topics):
     return result
 
 
+def build_recommendation_candidates(topics):
+    """Keep the decision layer separate from descriptive metrics."""
+    return (
+        topics[
+            topics["recommendation_bucket"].isin(
+                ["high_review_priority", "review"]
+            )
+        ]
+        .sort_values(["recommendation_bucket", "accuracy_pct", "attempts"])
+        .loc[
+            :,
+            [
+                "subject",
+                "topic",
+                "attempts",
+                "accuracy_pct",
+                "recommendation_bucket",
+            ],
+        ]
+    )
+
+
 topics, subjects, difficulty, activity = load_data()
 topics = add_product_priority(topics)
+candidates = build_recommendation_candidates(topics)
 
 subjects["attempt_share_pct"] = (
     100 * subjects["attempts"] / subjects["attempts"].sum()
 )
-subjects["accuracy_pct"] = (
-    100 * subjects["correct"] / subjects["attempts"]
-)
+subjects["accuracy_pct"] = 100 * subjects["correct"] / subjects["attempts"]
 
 print("=== DATASET ===")
 print(f"Attempts represented: {int(topics['attempts'].sum())}")
@@ -59,37 +79,34 @@ print(
     .to_string(index=False)
 )
 
-print("\n=== REVIEW CANDIDATES ===")
-candidates = (
-    topics[topics["recommendation_bucket"].isin(
-        ["high_review_priority", "review"]
-    )]
-    .sort_values(["recommendation_bucket", "accuracy_pct", "attempts"])
-)
+print("\n=== DECISION LAYER: NEXT-TOPIC CANDIDATES ===")
 print(
-    candidates[
-        ["subject", "topic", "attempts", "accuracy_pct", "recommendation_bucket"]
-    ]
-    .round(1)
-    .to_string(index=False)
+    candidates.round(1).to_string(index=False)
+    if not candidates.empty
+    else "No topics meet the current review rules."
 )
 
 print("\n=== DIFFICULTY ===")
 print(difficulty.round(1).to_string(index=False))
 
-print("\n=== ACTIVITY ===")
 daily = activity.sort_values("date").copy()
 daily["cumulative_xp"] = daily["xp_earned"].cumsum()
 daily["tasks_change_vs_previous_day"] = daily["tasks_completed"].diff()
+
+print("\n=== ACTIVITY ===")
 print(daily.to_string(index=False))
 
-weighted_accuracy = (
-    100 * topics["correct"].sum() / topics["attempts"].sum()
-)
+weighted_accuracy = 100 * topics["correct"].sum() / topics["attempts"].sum()
 print("\n=== PRODUCT INTERPRETATION ===")
 print(f"Weighted accuracy across topic data: {weighted_accuracy:.1f}%")
-print("Low accuracy is treated as a product signal only when observation volume is sufficient.")
-print("The current slice has no control group, so recommender effectiveness remains a hypothesis.")
+print(
+    "Recommendation is a hypothesis based on performance and observation volume; "
+    "recency and progress require event-level data."
+)
+print(
+    "The current slice has no control group, so recommender effectiveness "
+    "cannot be treated as a causal result."
+)
 
 ax = (
     subjects.sort_values("accuracy_pct")
