@@ -1,55 +1,38 @@
 -- Kvant Product Analytics SQL layer
+-- Analytical source: topic_performance.csv / subject_performance.csv
 
 -- Subject performance
-SELECT subject, COUNT(*) AS attempts,
-       SUM(is_correct) AS correct_answers,
-       ROUND(100.0 * AVG(is_correct), 1) AS accuracy_pct
-FROM task_attempts
-GROUP BY subject
+SELECT subject, attempts, correct,
+       ROUND(accuracy_pct, 1) AS accuracy_pct
+FROM subject_performance
 ORDER BY attempts DESC;
 
 -- Weak topics with a minimum-volume guardrail
-WITH topic_metrics AS (
-  SELECT subject, topic_id, topic, COUNT(*) AS attempts,
-         SUM(is_correct) AS correct_answers,
-         AVG(is_correct) AS accuracy
-  FROM task_attempts
-  GROUP BY subject, topic_id, topic
-)
-SELECT subject, topic_id, topic, attempts, correct_answers,
-       ROUND(100.0 * accuracy, 1) AS accuracy_pct
-FROM topic_metrics
+SELECT subject, topic_id, topic, attempts, correct,
+       ROUND(accuracy_pct, 1) AS accuracy_pct
+FROM topic_performance
 WHERE attempts >= 10
-ORDER BY accuracy ASC, attempts DESC;
+ORDER BY accuracy_pct ASC, attempts DESC;
 
--- Difficulty vs accuracy
-SELECT difficulty, COUNT(*) AS attempts,
-       ROUND(100.0 * AVG(is_correct), 1) AS accuracy_pct
-FROM task_attempts
-GROUP BY difficulty
-ORDER BY difficulty;
-
--- Daily engagement
-SELECT DATE(created_at) AS activity_date,
-       COUNT(*) AS attempts,
-       SUM(is_correct) AS correct_answers,
-       ROUND(100.0 * AVG(is_correct), 1) AS accuracy_pct
-FROM task_attempts
-GROUP BY DATE(created_at)
-ORDER BY activity_date;
+-- Aggregate accuracy represented by the topic table
+SELECT
+    SUM(attempts) AS attempts,
+    SUM(correct) AS correct_answers,
+    ROUND(100.0 * SUM(correct) / SUM(attempts), 1) AS accuracy_pct
+FROM topic_performance;
 
 -- Rank weak topics within each subject
-WITH topic_metrics AS (
-  SELECT subject, topic_id, topic, COUNT(*) AS attempts,
-         AVG(is_correct) AS accuracy
-  FROM task_attempts
-  GROUP BY subject, topic_id, topic
-),
-eligible AS (
-  SELECT * FROM topic_metrics WHERE attempts >= 5
-)
 SELECT subject, topic, attempts,
-       ROUND(100.0 * accuracy, 1) AS accuracy_pct,
-       RANK() OVER (PARTITION BY subject ORDER BY accuracy) AS weakness_rank
-FROM eligible
+       ROUND(accuracy_pct, 1) AS accuracy_pct,
+       RANK() OVER (
+           PARTITION BY subject
+           ORDER BY accuracy_pct ASC
+       ) AS weakness_rank
+FROM topic_performance
+WHERE attempts >= 5
 ORDER BY subject, weakness_rank;
+
+-- Daily engagement
+SELECT date, tasks_completed, xp_earned
+FROM daily_activity
+ORDER BY date;
